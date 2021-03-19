@@ -1,11 +1,16 @@
 import tkinter as tk
 from tkinter.messagebox import *
 import re
-import subprocess
+import serial
+import time
+import threading
+
+ser = serial.Serial('/dev/cu.usbmodem11301', 115200, timeout=1)
 
 class Application(tk.Tk):
     def __init__(self):
         tk.Tk.__init__(self)
+        self.isStarted = False
         self.create_widgets()
 
     def create_widgets(self):
@@ -21,8 +26,11 @@ class Application(tk.Tk):
         self.velocity_input = tk.Spinbox(self.input_frame, from_=0, to=1, increment=0.1)
         
         self.initialization_button = tk.Button(self, text="Initialiser", command=self.initialize)
-        self.start_button = tk.Button(self, text="Démarrer l'essai", command=self.start)
+        self.start_button = tk.Button(self, text="Démarrer l'essai", command=self.start, state="disabled")
         self.stop_button = tk.Button(self, text="Arrêt d'urgence", command=self.stop, bg='red')
+
+        self.velocity_label = tk.Label(self, text="Vitesse : 0.00 m/s", padx=20, pady=20)
+
 
         self.main_title.pack()
 
@@ -33,39 +41,57 @@ class Application(tk.Tk):
         self.velocity_input.pack()
 
         self.initialization_button.pack()
+
+        self.velocity_label.pack()
+
+        self.main_title.pack()
+
+
+        self.update_real_velocity()
     
     def initialize(self):
         # Send serial for initialization
         if askyesno("Initialisation du banc", "Avant de lancer l'initialisation, vérifier que rien que rien ne gène le slider ou qu'aucun risque n'est présent."):
             self.initialization_button.pack_forget()
+            command = "i" + str(self.distance_input.get())
+            ser.write(command.encode())
             self.start_button.pack()
+            self.start_button['state'] = 'normal'
 
     def start(self):
         # Send serial for start
-        if askyesno("Démarrage de l'essai", "Avant de lancer l'essai, vérifier que rien que rien ne gène le slider ou qu'aucun risque n'est présent."):
-            print(self.distance_input.get())
-            self.start_button.pack_forget()
-            self.stop_button.pack()
+        print(self.velocity_input.get())
+        command = "v" + str(self.velocity_input.get())
+        ser.write(command.encode()) 
+        self.isStarted = True
+        self.start_button.pack_forget()
+        self.stop_button.pack()
 
     def stop(self):
         # Send serial for start
+        ser.write("s".encode())
         print("STOOOOOP")
+        self.isStarted = False
+        self.stop_button.pack_forget()
+        self.initialization_button.pack()
 
+    def update_real_velocity(self):
+        if(self.isStarted):
+            ser_bytes = ser.readline()
+            decoded_bytes = ser_bytes[0:len(ser_bytes)-2].decode("utf-8")
+            try:
+                float(decoded_bytes)
+                print(float(decoded_bytes))
+                self.velocity_label['text'] = "Vitesse : " + str(round(float(decoded_bytes), 2)) + "m/s"
+            except ValueError:
+                return False
+        self.after(10, self.update_real_velocity)
 
 if __name__ == "__main__":
-    device_re = re.compile("Bus\s+(?P<bus>\d+)\s+Device\s+(?P<device>\d+).+ID\s(?P<id>\w+:\w+)\s(?P<tag>.+)$", re.I)
-    df = subprocess.check_output("lsusb")
-    devices = []
-    for i in df.split('\n'):
-        if i:
-            info = device_re.match(i)
-            if info:
-                dinfo = info.groupdict()
-                dinfo['device'] = '/dev/bus/usb/%s/%s' % (dinfo.pop('bus'), dinfo.pop('device'))
-                devices.append(dinfo)
-    print(devices)
     app = Application()
     app.title("Slider Controller")
     app.geometry("600x320")
     app.mainloop()
+    
+
 
