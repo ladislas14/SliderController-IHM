@@ -34,6 +34,8 @@ float kd = 20;           // Coefficient dérivateur
 String incomingString; 
 float longueur_du_banc;
 
+int arret = 1;
+
 
 void setup() {
   // put your setup code here, to run once:
@@ -59,27 +61,23 @@ void loop(){
 
 
       if(incomingString[0] == 'i'){
+        arret = 1;
         initialisation();
       }
       
       if(incomingString[0] == 'v'){
+        digitalWrite(DIR, 1);
         incomingString.remove(0,1);
         consigne_vitesse_lineaire = incomingString.toFloat();
         Serial.println(consigne_vitesse_lineaire);
       }
 
       if(incomingString[0] == 's'){
-        arret();
+        arret = 0;
       }
     }
     timer.run();
     delay(10);
-}
-
-void arret(){
-  analogWrite(PWM, 0);    // Sortie moteur à 0
-  consigne_vitesse_lineaire = 0.0;
-  
 }
 
 /* Interruption sur tick de la codeuse */
@@ -89,7 +87,7 @@ void compteur(){
 
 void initialisation(){
   digitalWrite(DIR, 0);
-  analogWrite(PWM, 50);
+  consigne_vitesse_lineaire = 0.05;
 }
 
 void asservissement() {
@@ -105,7 +103,7 @@ void asservissement() {
     erreur_precedente = erreur;
  
     // PID : calcul de la commande
-    cmd = kp*erreur + ki*somme_erreur + kd*delta_erreur;
+    cmd = arret*(kp*erreur + ki*somme_erreur + kd*delta_erreur);
  
     // Normalisation et contrôle du moteur
     if(cmd < 0) cmd=0;

@@ -5,7 +5,7 @@ import serial
 import time
 import threading
 
-ser = serial.Serial('/dev/ttyACM1', 115200, timeout=1)
+ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
 
 class Application(tk.Tk):
     def __init__(self):
