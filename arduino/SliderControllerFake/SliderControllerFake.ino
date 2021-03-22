@@ -87,7 +87,7 @@ double randomDouble(double minf, double maxf)
 }
 
 float fake_vitesse(float consigne_vitesse, int t){
-  return consigne_vitesse*(1-exp(-t/1))+randomDouble(-0.01,0.01);
+  return consigne_vitesse*(1-exp(-t/10))+randomDouble(-0.01,0.01);
 }
 
 

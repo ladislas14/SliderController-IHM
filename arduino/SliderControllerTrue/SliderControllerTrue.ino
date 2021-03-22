@@ -40,10 +40,10 @@ void setup() {
     Serial.begin(115200); 
     pinMode(EN, OUTPUT);     // Sortie moteur
     digitalWrite(EN, 1);    // Sortie moteur à 0
-    pinMode(DIR, OUTPUT);     // Sortie moteur
-    digitalWrite(DIR, 1);    // Sortie moteur à 0
-    pinMode(PWM, OUTPUT);     // Sortie moteur
-    analogWrite(PWM, 0);    // Sortie moteur à 0
+    pinMode(DIR, OUTPUT);     // Direction moteur
+    digitalWrite(DIR, 1);    // Moteur en direction normale
+    pinMode(PWM, OUTPUT);     // PWM
+    analogWrite(PWM, 0);    // PWM à 0
 
     attachInterrupt(digitalPinToInterrupt(21), arret, CHANGE); //Arret par bouton manuel ou capteur effet Hall
     attachInterrupt(digitalPinToInterrupt(19), compteur, CHANGE);    // Interruption sur tick de la codeuse (interruption 0  = 19)
@@ -56,11 +56,20 @@ void loop(){
     if (Serial.available() > 0) {
       // read the oldest byte in the serial buffer:
       incomingString = Serial.readString();
+
+
+      if(incomingString[0] == 'i'){
+        initialisation();
+      }
       
       if(incomingString[0] == 'v'){
         incomingString.remove(0,1);
         consigne_vitesse_lineaire = incomingString.toFloat();
         Serial.println(consigne_vitesse_lineaire);
+      }
+
+      if(incomingString[0] == 's'){
+        arret();
       }
     }
     timer.run();
@@ -75,8 +84,13 @@ void arret(){
 
 /* Interruption sur tick de la codeuse */
 void compteur(){
-    tick_encodeur++;  // On incrémente le nombre de tick de la codeuse
-}    
+  tick_encodeur++;  // On incrémente le nombre de tick de la codeuse
+}
+
+void initialisation(){
+  digitalWrite(DIR, 0);
+  analogWrite(PWM, 50);
+}
 
 void asservissement() {
     int tick = tick_encodeur;
