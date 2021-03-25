@@ -5,6 +5,7 @@ import serial
 import time
 import threading
 
+# A changer en fonction du port usb sur lequel l'arduino est branchée
 ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
 
 class Application(tk.Tk):
